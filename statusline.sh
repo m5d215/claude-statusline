@@ -4,8 +4,9 @@
 
 # --- Icons (Nerd Font) ---
 def icons:
-  { sep: "\ue0b0",   # Powerline right triangle
-    thin: "\ue0b1",  # Powerline thin separator (same-color boundary)
+  { lc:  "\ue0b6",   # Left round cap
+    rc:  "\ue0b4",   # Right round cap
+    thin: "\ue0b1",  # Thin separator (same-color boundary)
     git: "\ue0a0",   # Powerline branch
     gh:  "\uf09b",   # nf-fa-github
     gl:  "\uf316",   # nf-md-gitlab
@@ -138,34 +139,37 @@ def build:
   | {c2_bg: 238, c2_fg: 252} as $c2   # Dir
   | {c3_bg: 73, c3_fg: 234} as $c3    # Git
 
+  # pill: left-cap content right-cap (each segment is an independent rounded pill)
   # Segment 1: Model
-  | bg($c1.c1_bg) + fg($c1.c1_fg) + " \($model) "
+  | fg($c1.c1_bg) + $i.lc
+  + bg($c1.c1_bg) + fg($c1.c1_fg) + "\($model)"
+  + rst + fg($c1.c1_bg) + $i.rc + rst
 
   # Segment 2: Directory
-  + fg($c1.c1_bg) + bg($c2.c2_bg) + $i.sep
-  + fg($c2.c2_fg) + " \($dir_label) "
+  + " " + fg($c2.c2_bg) + $i.lc
+  + bg($c2.c2_bg) + fg($c2.c2_fg) + "\($dir_label)"
+  + rst + fg($c2.c2_bg) + $i.rc + rst
 
   # Segment 3: Git branch (optional)
   + (if $branch != ""
-     then fg($c2.c2_bg) + bg($c3.c3_bg) + $i.sep
-        + fg($c3.c3_fg) + " \($i.git) \($branch) "
-        + fg($c3.c3_bg) + bg($c4.bg) + $i.sep
-     else fg($c2.c2_bg) + bg($c4.bg) + $i.sep
+     then " " + fg($c3.c3_bg) + $i.lc
+        + bg($c3.c3_bg) + fg($c3.c3_fg) + "\($i.git) \($branch)"
+        + rst + fg($c3.c3_bg) + $i.rc + rst
+     else ""
      end)
 
   # Segment 4: Context %
-  + fg($c4.fg) + " \($i.ctx) \($pct)% "
+  + " " + fg($c4.bg) + $i.lc
+  + bg($c4.bg) + fg($c4.fg) + "\($i.ctx) \($pct)%"
+  + rst + fg($c4.bg) + $i.rc + rst
 
   # Segment 5: Rate limits (optional)
   + (if $rl != null
      then ($rl.max | rate_limit_color) as $c5
-        | (if $c4.bg == $c5.bg
-           then fg($c5.fg) + $i.thin
-           else fg($c4.bg) + bg($c5.bg) + $i.sep
-           end)
-        + fg($c5.fg) + " \($i.rl) \($rl.label) "
-        + rst + fg($c5.bg) + $i.sep + rst
-     else rst + fg($c4.bg) + $i.sep + rst
+        | " " + fg($c5.bg) + $i.lc
+        + bg($c5.bg) + fg($c5.fg) + "\($i.rl) \($rl.label)"
+        + rst + fg($c5.bg) + $i.rc + rst
+     else ""
      end);
 
 # --- Entry point ---
