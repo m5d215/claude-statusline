@@ -23,11 +23,29 @@ A Powerline-style status line for [Claude Code](https://claude.ai/code), written
 
 ## Installation
 
-**1. Install jq-jit**
+### Homebrew (recommended)
 
 ```sh
-cargo install --git https://github.com/m5d215/jq-jit
+brew install m5d215/tap/claude-statusline
 ```
+
+This pulls in [jq-jit](https://github.com/m5d215/jq-jit) automatically and installs the script as `claude-statusline` on your `PATH`.
+
+Then add to your `~/.claude/settings.json`:
+
+```json
+{
+  "statusLine": {
+    "type": "command",
+    "command": "claude-statusline",
+    "padding": 0
+  }
+}
+```
+
+### Manual
+
+**1. Install [jq-jit](https://github.com/m5d215/jq-jit)** (via Homebrew, `cargo install`, or a release binary).
 
 **2. Download the script**
 
@@ -35,8 +53,6 @@ cargo install --git https://github.com/m5d215/jq-jit
 curl -o ~/.claude/statusline.sh https://raw.githubusercontent.com/m5d215/claude-statusline/main/statusline.sh
 chmod +x ~/.claude/statusline.sh
 ```
-
-Or clone this repo and symlink it wherever you like.
 
 **3. Configure Claude Code**
 
