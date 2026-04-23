@@ -73,10 +73,11 @@ def rate_limit_color:
   else              {bg: 108, fg: 234}
   end;
 
-# --- Format ISO timestamp to local time ---
-# Input: ISO timestamp string or null; Output: formatted string or empty
+# --- Format timestamp to local time ---
+# Input: ISO string, Unix epoch number, or null; Output: formatted string or empty
 def fmt_reset(fmt):
   if . == null or . == "" then ""
+  elif type == "number" then try (localtime | strftime(fmt)) catch ""
   else try (fromisodate | localtime | strftime(fmt)) catch ""
   end;
 

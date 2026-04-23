@@ -72,7 +72,7 @@ show 'rate limit: green (<50%)' '{
     rate_limits: {
         five_hour: {
             used_percentage: 30,
-            resets_at: exec("date -v+3H -u +%Y-%m-%dT%H:%M:%S.000Z")
+            resets_at: (now + 3*3600 | floor)
         }
     }
 }'
@@ -93,11 +93,11 @@ show 'rate limit: yellow (50-79%), both 5h+7d' '{
     rate_limits: {
         five_hour: {
             used_percentage: 25.3,
-            resets_at: exec("date -v+3H -u +%Y-%m-%dT%H:%M:%S.000Z")
+            resets_at: (now + 3*3600 | floor)
         },
         seven_day: {
             used_percentage: 62.7,
-            resets_at: exec("date -v+3d -u +%Y-%m-%dT%H:%M:%S.000Z")
+            resets_at: (now + 3*86400 | floor)
         }
     }
 }'
@@ -118,7 +118,7 @@ show 'rate limit: red (80%+)' '{
     rate_limits: {
         seven_day: {
             used_percentage: 92,
-            resets_at: exec("date -v+3d -u +%Y-%m-%dT%H:%M:%S.000Z")
+            resets_at: (now + 3*86400 | floor)
         }
     }
 }'
