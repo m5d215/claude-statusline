@@ -185,6 +185,23 @@ show 'dir: non-git (/tmp)' '{
     }
 }'
 
+# --- Profile (CLAUDE_CONFIG_DIR) ---
+
+CLAUDE_CONFIG_DIR=$HOME/.config/claude/profiles/personal show 'profile: personal' '{
+    model: {
+        "display_name": "Opus 4.6 (1M context)"
+    },
+    workspace: {
+        current_dir: "\(env.HOME)/src/github.com/m5d215/claude-statusline"
+    },
+    context_window: {
+        context_window_size: 1000000,
+        current_usage: {
+            input_tokens: 50000
+        }
+    }
+}'
+
 # --- Edge cases ---
 
 show 'minimal: all fields missing' '{}'
