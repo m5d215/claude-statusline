@@ -1,6 +1,6 @@
 #!/usr/bin/env -S jq-jit -rf
 # Powerline status line for Claude Code (single jq-jit program)
-# Segments: Model | Directory | Git Branch | Context % | Rate Limits
+# Segments: Model | Directory | Git Branch | Profile | Context % | Rate Limits
 
 # --- Icons (Nerd Font) ---
 def icons:
@@ -11,7 +11,8 @@ def icons:
     gh:  "\uf09b",   # nf-fa-github
     gl:  "\uf316",   # nf-md-gitlab
     ctx: "\uf2db",   # nf-fa-microchip
-    rl:  "\uf074" };  # nf-fa-random (rate limit)
+    rl:  "\uf074",   # nf-fa-random (rate limit)
+    user: "\uf007" };  # nf-fa-user (profile)
 
 # --- ANSI helpers ---
 def fg(n): "\u001b[38;5;\(n)m";
@@ -116,6 +117,16 @@ def rate_limit_label:
       | {label: $label, max: $rl_max}
     end;
 
+# --- Profile label (from CLAUDE_CONFIG_DIR) ---
+# Output: basename of CLAUDE_CONFIG_DIR, or empty when unset / default (~/.claude)
+def profile_label:
+  (env.CLAUDE_CONFIG_DIR // "" | rtrimstr("/")) as $ccd
+  | env.HOME as $home
+  | if $ccd == "" or $ccd == "\($home)/.claude"
+    then ""
+    else ($ccd | split("/") | last)
+    end;
+
 # --- Main builder ---
 # Input: root JSON object; Output: formatted Powerline string
 def build:
@@ -131,6 +142,7 @@ def build:
   | ($cwd | git_branch) as $branch
   | ($pct | context_color) as $c4
   | rate_limit_label as $rl
+  | profile_label as $profile
 
   # Shorten directory (pass cwd through shorten_dir via label/0 trick)
   | ($cwd | shorten_dir) as $dir_label
@@ -139,6 +151,7 @@ def build:
   | {c1_bg: 67, c1_fg: 255} as $c1    # Model
   | {c2_bg: 238, c2_fg: 252} as $c2   # Dir
   | {c3_bg: 73, c3_fg: 234} as $c3    # Git
+  | {bg: 97, fg: 255} as $cp          # Profile
 
   # pill: left-cap content right-cap (each segment is an independent rounded pill)
   # Segment 1: Model
@@ -159,12 +172,20 @@ def build:
      else ""
      end)
 
-  # Segment 4: Context %
+  # Segment 4: Profile (CLAUDE_CONFIG_DIR, optional)
+  + (if $profile != ""
+     then " " + fg($cp.bg) + $i.lc
+        + bg($cp.bg) + fg($cp.fg) + "\($i.user) \($profile)"
+        + rst + fg($cp.bg) + $i.rc + rst
+     else ""
+     end)
+
+  # Segment 5: Context %
   + " " + fg($c4.bg) + $i.lc
   + bg($c4.bg) + fg($c4.fg) + "\($i.ctx) \($pct)%"
   + rst + fg($c4.bg) + $i.rc + rst
 
-  # Segment 5: Rate limits (optional)
+  # Segment 6: Rate limits (optional)
   + (if $rl != null
      then ($rl.max | rate_limit_color) as $c5
         | " " + fg($c5.bg) + $i.lc

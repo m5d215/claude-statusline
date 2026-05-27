@@ -11,6 +11,7 @@ A Powerline-style status line and subagent panel renderer for [Claude Code](http
 | Model | Claude model name and context window size |
 | Directory | Current working directory (`~/src/github.com/` and `~/src/gitlab.com/` are shortened with icons) |
 | Git branch | Current branch (hidden when not in a git repo) |
+| Profile | Basename of `$CLAUDE_CONFIG_DIR` (hidden when unset or `~/.claude`) |
 | Context % | Context window usage — green → yellow → red as it fills |
 | Rate limits | 5-hour and 7-day usage with reset time (hidden when no data) |
 
