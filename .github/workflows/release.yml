@@ -11,7 +11,7 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Create GitHub Release
         env:
@@ -20,7 +20,7 @@ jobs:
         run: gh release create "${{ github.ref_name }}" --generate-notes
 
       - name: Checkout homebrew-tap
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: m5d215/homebrew-tap
           token: ${{ secrets.TAP_PUSH_TOKEN }}
