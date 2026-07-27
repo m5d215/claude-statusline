@@ -33,7 +33,7 @@ def shorten_dir:
            then $i.gl + " " + ($short | capture("^~/src/gitlab\\.com/(?<rest>.+)$").rest)
            else $short
            end
-    else $dir
+    else ($dir | split("/") | last)
     end;
 
 # --- Git branch detection ---
