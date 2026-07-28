@@ -77,7 +77,7 @@ show 'rate limit: green (<50%)' '{
     }
 }'
 
-show 'rate limit: yellow (50-79%), both 5h+7d' '{
+show 'rate limit: both green, thin separator' '{
     model: {
         "display_name": "Opus 4.6 (1M context)"
     },
@@ -93,6 +93,56 @@ show 'rate limit: yellow (50-79%), both 5h+7d' '{
     rate_limits: {
         five_hour: {
             used_percentage: 25.3,
+            resets_at: (now + 3*3600 | floor)
+        },
+        seven_day: {
+            used_percentage: 42.7,
+            resets_at: (now + 3*86400 | floor)
+        }
+    }
+}'
+
+show 'rate limit: two-tone (5h green, 7d yellow)' '{
+    model: {
+        "display_name": "Opus 4.6 (1M context)"
+    },
+    workspace: {
+        current_dir: "\(env.HOME)/src/github.com/m5d215/claude-statusline"
+    },
+    context_window: {
+        context_window_size: 1000000,
+        current_usage: {
+            input_tokens: 50000
+        }
+    },
+    rate_limits: {
+        five_hour: {
+            used_percentage: 25.3,
+            resets_at: (now + 3*3600 | floor)
+        },
+        seven_day: {
+            used_percentage: 62.7,
+            resets_at: (now + 3*86400 | floor)
+        }
+    }
+}'
+
+show 'rate limit: two-tone (5h red, 7d yellow)' '{
+    model: {
+        "display_name": "Opus 4.6 (1M context)"
+    },
+    workspace: {
+        current_dir: "\(env.HOME)/src/github.com/m5d215/claude-statusline"
+    },
+    context_window: {
+        context_window_size: 1000000,
+        current_usage: {
+            input_tokens: 50000
+        }
+    },
+    rate_limits: {
+        five_hour: {
+            used_percentage: 90.1,
             resets_at: (now + 3*3600 | floor)
         },
         seven_day: {

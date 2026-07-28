@@ -82,39 +82,28 @@ def fmt_reset(fmt):
   else try (fromisodate | localtime | strftime(fmt)) catch ""
   end;
 
-# --- Rate limit label ---
-# Input: root JSON; Output: {label, max} or null if no rate limits
-def rate_limit_label:
-  icons as $i
-  | (.rate_limits.five_hour.used_percentage // null | if . then round else null end) as $rl5h
+# --- Rate limit part ---
+# Output: {pct, label} or null (reset time shown when the part itself is >= 50)
+def rate_limit_part($pct; $reset; prefix; fmt):
+  if $pct == null then null
+  else
+    {pct: $pct,
+     label: (prefix + ":\($pct)%"
+             + (if $pct >= 50 and $reset != null
+                then ($reset | fmt_reset(fmt)) as $r
+                     | if $r != "" then " \($r)" else "" end
+                else "" end))}
+  end;
+
+# --- Rate limit parts ---
+# Input: root JSON; Output: {p5, p7} (each {pct, label} or null), or null if no rate limits
+def rate_limit_parts:
+  (.rate_limits.five_hour.used_percentage // null | if . then round else null end) as $rl5h
   | (.rate_limits.seven_day.used_percentage // null | if . then round else null end) as $rl7d
-  | (.rate_limits.five_hour.resets_at // null) as $rl5h_reset
-  | (.rate_limits.seven_day.resets_at // null) as $rl7d_reset
   | if $rl5h == null and $rl7d == null then null
     else
-      ([($rl5h // 0), ($rl7d // 0)] | max) as $rl_max
-      # 5h part
-      | (if $rl5h != null
-         then "5h:\($rl5h)%"
-              + (if $rl_max >= 50 and $rl5h_reset != null
-                 then ($rl5h_reset | fmt_reset("%H:%M")) as $r
-                      | if $r != "" then " \($r)" else "" end
-                 else "" end)
-         else "" end) as $part5h
-      # 7d part
-      | (if $rl7d != null
-         then "7d:\($rl7d)%"
-              + (if $rl_max >= 50 and $rl7d_reset != null
-                 then ($rl7d_reset | fmt_reset("%-m/%-d %H:%M")) as $r
-                      | if $r != "" then " \($r)" else "" end
-                 else "" end)
-         else "" end) as $part7d
-      # combine
-      | (if $part5h != "" and $part7d != ""
-         then $part5h + " " + $part7d
-         else $part5h + $part7d
-         end) as $label
-      | {label: $label, max: $rl_max}
+      { p5: rate_limit_part($rl5h; .rate_limits.five_hour.resets_at // null; "5h"; "%H:%M"),
+        p7: rate_limit_part($rl7d; .rate_limits.seven_day.resets_at // null; "7d"; "%-m/%-d %H:%M") }
     end;
 
 # --- Profile label (from CLAUDE_CONFIG_DIR) ---
@@ -141,7 +130,7 @@ def build:
   | context_pct as $pct
   | ($cwd | git_branch) as $branch
   | ($pct | context_color) as $c4
-  | rate_limit_label as $rl
+  | rate_limit_parts as $rl
   | profile_label as $profile
 
   # Shorten directory (pass cwd through shorten_dir via label/0 trick)
@@ -185,12 +174,22 @@ def build:
   + bg($c4.bg) + fg($c4.fg) + "\($i.ctx) \($pct)%"
   + rst + fg($c4.bg) + $i.rc + rst
 
-  # Segment 6: Rate limits (optional)
+  # Segment 6: Rate limits (optional, per-part colors in one pill)
   + (if $rl != null
-     then ($rl.max | rate_limit_color) as $c5
-        | " " + fg($c5.bg) + $i.lc
-        + bg($c5.bg) + fg($c5.fg) + "\($i.rl) \($rl.label)"
-        + rst + fg($c5.bg) + $i.rc + rst
+     then ([$rl.p5, $rl.p7] | map(select(. != null) | . + {c: (.pct | rate_limit_color)})) as $parts
+        | $parts[0] as $a
+        | ($parts[1] // null) as $b
+        | " " + fg($a.c.bg) + $i.lc
+        + bg($a.c.bg) + fg($a.c.fg) + "\($i.rl) \($a.label)"
+        + (if $b == null
+           then ""
+           elif $b.c.bg == $a.c.bg
+           then " \($i.thin) \($b.label)"
+           else fg($a.c.bg) + bg($b.c.bg) + $i.rc
+              + fg($b.c.fg) + " \($b.label)"
+           end)
+        + ((if $b != null then $b.c.bg else $a.c.bg end) as $last_bg
+           | rst + fg($last_bg) + $i.rc + rst)
      else ""
      end);
 
