@@ -13,7 +13,7 @@ A Powerline-style status line and subagent panel renderer for [Claude Code](http
 | Git branch | Current branch (hidden when not in a git repo) |
 | Profile | Basename of `$CLAUDE_CONFIG_DIR` (hidden when unset or `~/.claude`) |
 | Context % | Context window usage — green → yellow → red as it fills |
-| Rate limits | 5-hour and 7-day usage with reset time (hidden when no data) |
+| Rate limits | 5-hour and 7-day usage, each colored green → yellow → red independently; reset time appears when that window is at 50%+ (hidden when no data) |
 
 ## Subagent status line
 
