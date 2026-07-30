@@ -6,13 +6,27 @@ A Powerline-style status line and subagent panel renderer for [Claude Code](http
 
 ![catalog](catalog.png)
 
-| Segment | Description |
-|---------|-------------|
-| Model | Claude model name and context window size |
-| Directory | Current working directory (`~/src/github.com/` and `~/src/gitlab.com/` are shortened with icons) |
-| Git branch | Current branch (hidden when not in a git repo) |
-| Profile | Basename of `$CLAUDE_CONFIG_DIR` (hidden when unset or `~/.claude`) |
-| Meters | Context window usage plus 5-hour / 7-day rate limits in one pill, each part colored green → yellow → red independently; rate-limit reset time appears when that window is at 50%+ (rate-limit parts hidden when no data) |
+| Segment | Name | Description |
+|---------|------|-------------|
+| Model | `model` | Claude model name and context window size |
+| Directory | `dir` | Current working directory (`~/src/github.com/` and `~/src/gitlab.com/` are shortened with icons) |
+| Git branch | `git` | Current branch (hidden when not in a git repo) |
+| Profile | `profile` | Basename of `$CLAUDE_CONFIG_DIR` (hidden when unset or `~/.claude`) |
+| Meters | `meters` (`context`, `5h`, `7d`) | Context window usage plus 5-hour / 7-day rate limits in one pill, each part colored green → yellow → red independently; rate-limit reset time appears when that window is at 50%+ (rate-limit parts hidden when no data) |
+
+### Hiding segments
+
+Set `CLAUDE_STATUSLINE_HIDE` to a comma-separated list of names from the table above to hide segments. `meters` hides the whole meters pill; `context`, `5h`, and `7d` hide individual parts of it. Names are case-insensitive and unknown names are ignored.
+
+```json
+{
+  "statusLine": {
+    "type": "command",
+    "command": "CLAUDE_STATUSLINE_HIDE=profile,7d claude-statusline",
+    "padding": 0
+  }
+}
+```
 
 ## Subagent status line
 
