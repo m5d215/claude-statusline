@@ -1,6 +1,8 @@
 #!/usr/bin/env -S jq-jit -rf
 # Powerline status line for Claude Code (single jq-jit program)
 # Segments: Model | Directory | Git Branch | Profile | Meters (Context % + Rate Limits)
+# CLAUDE_STATUSLINE_HIDE hides segments by name (comma-separated):
+#   model | dir | git | profile | meters | context | 5h | 7d
 
 # --- Icons (Nerd Font) ---
 def icons:
@@ -115,15 +117,26 @@ def profile_label:
     else ($ccd | split("/") | last)
     end;
 
+# --- Hidden names (from CLAUDE_STATUSLINE_HIDE) ---
+# Output: array of segment / meter part names to hide
+def hidden:
+  env.CLAUDE_STATUSLINE_HIDE // ""
+  | split(",")
+  | map(gsub("^\\s+|\\s+$"; "") | ascii_downcase | select(. != ""));
+
+# --- Hide check ---
+# Input: name string; Output: whether $hide lists it
+def is_hidden($hide): . as $n | ($hide | index($n)) != null;
+
 # --- Meter parts: context % and rate limits, rendered as one pill ---
-# Input: root JSON; Output: array of {label, c: {bg, fg}}
+# Input: root JSON; Output: array of {name, label, c: {bg, fg}}
 def meter_parts:
   icons as $i
   | context_pct as $pct
-  | ([rate_limit_parts | .p5, .p7]
-     | map(select(. != null))
-     | map({label, c: (.pct | rate_limit_color)})) as $rls
-  | [{label: "\($i.ctx) \($pct)%", c: ($pct | context_color)}] + $rls;
+  | (rate_limit_parts // {}) as $rl
+  | [ {name: "context", label: "\($i.ctx) \($pct)%", c: ($pct | context_color)},
+      (if $rl.p5 then ($rl.p5 | {name: "5h", label, c: (.pct | rate_limit_color)}) else empty end),
+      (if $rl.p7 then ($rl.p7 | {name: "7d", label, c: (.pct | rate_limit_color)}) else empty end) ];
 
 # --- Pill renderer ---
 # Input: non-empty array of {label, c: {bg, fg}}; Output: one rounded pill.
@@ -148,6 +161,7 @@ def pill:
 # Input: root JSON object; Output: formatted Powerline string
 def build:
   icons as $i
+  | hidden as $hide
 
   # Parse fields
   | (.model.display_name // "?"
@@ -155,18 +169,23 @@ def build:
        then capture("(?<base>.*) \\((?<n>[^)]+) context\\)") | "\(.base) \(.n)"
        else . end) as $model
   | (.workspace.current_dir // ".") as $cwd
-  | ($cwd | git_branch) as $branch
+  | (if ("git" | is_hidden($hide)) then "" else ($cwd | git_branch) end) as $branch
   | profile_label as $profile
   | ($cwd | shorten_dir) as $dir_label
-  | meter_parts as $meters
+  | (meter_parts | map(select(.name | is_hidden($hide) | not))) as $meters
 
   # Segments: single-part pills plus the meters pill
-  | [ [{label: $model, c: {bg: 67, fg: 255}}],
-      [{label: $dir_label, c: {bg: 238, fg: 252}}],
-      (if $branch != "" then [{label: "\($i.git) \($branch)", c: {bg: 73, fg: 234}}] else empty end),
-      (if $profile != "" then [{label: "\($i.user) \($profile)", c: {bg: 97, fg: 255}}] else empty end),
-      $meters ]
-  | map(pill)
+  | [ {name: "model", parts: [{label: $model, c: {bg: 67, fg: 255}}]},
+      {name: "dir", parts: [{label: $dir_label, c: {bg: 238, fg: 252}}]},
+      (if $branch != ""
+       then {name: "git", parts: [{label: "\($i.git) \($branch)", c: {bg: 73, fg: 234}}]}
+       else empty end),
+      (if $profile != ""
+       then {name: "profile", parts: [{label: "\($i.user) \($profile)", c: {bg: 97, fg: 255}}]}
+       else empty end),
+      {name: "meters", parts: $meters} ]
+  | map(select((.name | is_hidden($hide) | not) and (.parts | length > 0)))
+  | map(.parts | pill)
   | join(" ");
 
 # --- Entry point ---
