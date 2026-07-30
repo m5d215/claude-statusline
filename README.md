@@ -12,8 +12,7 @@ A Powerline-style status line and subagent panel renderer for [Claude Code](http
 | Directory | Current working directory (`~/src/github.com/` and `~/src/gitlab.com/` are shortened with icons) |
 | Git branch | Current branch (hidden when not in a git repo) |
 | Profile | Basename of `$CLAUDE_CONFIG_DIR` (hidden when unset or `~/.claude`) |
-| Context % | Context window usage — green → yellow → red as it fills |
-| Rate limits | 5-hour and 7-day usage, each colored green → yellow → red independently; reset time appears when that window is at 50%+ (hidden when no data) |
+| Meters | Context window usage plus 5-hour / 7-day rate limits in one pill, each part colored green → yellow → red independently; rate-limit reset time appears when that window is at 50%+ (rate-limit parts hidden when no data) |
 
 ## Subagent status line
 

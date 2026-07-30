@@ -1,6 +1,6 @@
 #!/usr/bin/env -S jq-jit -rf
 # Powerline status line for Claude Code (single jq-jit program)
-# Segments: Model | Directory | Git Branch | Profile | Context % | Rate Limits
+# Segments: Model | Directory | Git Branch | Profile | Meters (Context % + Rate Limits)
 
 # --- Icons (Nerd Font) ---
 def icons:
@@ -11,7 +11,6 @@ def icons:
     gh:  "\uf09b",   # nf-fa-github
     gl:  "\uf316",   # nf-md-gitlab
     ctx: "\uf2db",   # nf-fa-microchip
-    rl:  "\uf074",   # nf-fa-random (rate limit)
     user: "\uf007" };  # nf-fa-user (profile)
 
 # --- ANSI helpers ---
@@ -116,6 +115,35 @@ def profile_label:
     else ($ccd | split("/") | last)
     end;
 
+# --- Meter parts: context % and rate limits, rendered as one pill ---
+# Input: root JSON; Output: array of {label, c: {bg, fg}}
+def meter_parts:
+  icons as $i
+  | context_pct as $pct
+  | ([rate_limit_parts | .p5, .p7]
+     | map(select(. != null))
+     | map({label, c: (.pct | rate_limit_color)})) as $rls
+  | [{label: "\($i.ctx) \($pct)%", c: ($pct | context_color)}] + $rls;
+
+# --- Pill renderer ---
+# Input: non-empty array of {label, c: {bg, fg}}; Output: one rounded pill.
+# Adjacent same-color parts are joined with a thin separator, different-color
+# parts with a right-cap color transition.
+def pill:
+  icons as $i
+  | . as $parts
+  | fg($parts[0].c.bg) + $i.lc
+  + (reduce $parts[] as $p ({out: "", prev: null};
+       if .prev == null
+       then {out: (bg($p.c.bg) + fg($p.c.fg) + $p.label), prev: $p.c.bg}
+       elif .prev == $p.c.bg
+       then {out: (.out + " \($i.thin) \($p.label)"), prev: .prev}
+       else {out: (.out + fg(.prev) + bg($p.c.bg) + $i.rc + fg($p.c.fg) + " \($p.label)"),
+             prev: $p.c.bg}
+       end)
+     | .out)
+  + rst + fg($parts | last | .c.bg) + $i.rc + rst;
+
 # --- Main builder ---
 # Input: root JSON object; Output: formatted Powerline string
 def build:
@@ -127,71 +155,19 @@ def build:
        then capture("(?<base>.*) \\((?<n>[^)]+) context\\)") | "\(.base) \(.n)"
        else . end) as $model
   | (.workspace.current_dir // ".") as $cwd
-  | context_pct as $pct
   | ($cwd | git_branch) as $branch
-  | ($pct | context_color) as $c4
-  | rate_limit_parts as $rl
   | profile_label as $profile
-
-  # Shorten directory (pass cwd through shorten_dir via label/0 trick)
   | ($cwd | shorten_dir) as $dir_label
+  | meter_parts as $meters
 
-  # Static colors
-  | {c1_bg: 67, c1_fg: 255} as $c1    # Model
-  | {c2_bg: 238, c2_fg: 252} as $c2   # Dir
-  | {c3_bg: 73, c3_fg: 234} as $c3    # Git
-  | {bg: 97, fg: 255} as $cp          # Profile
-
-  # pill: left-cap content right-cap (each segment is an independent rounded pill)
-  # Segment 1: Model
-  | fg($c1.c1_bg) + $i.lc
-  + bg($c1.c1_bg) + fg($c1.c1_fg) + "\($model)"
-  + rst + fg($c1.c1_bg) + $i.rc + rst
-
-  # Segment 2: Directory
-  + " " + fg($c2.c2_bg) + $i.lc
-  + bg($c2.c2_bg) + fg($c2.c2_fg) + "\($dir_label)"
-  + rst + fg($c2.c2_bg) + $i.rc + rst
-
-  # Segment 3: Git branch (optional)
-  + (if $branch != ""
-     then " " + fg($c3.c3_bg) + $i.lc
-        + bg($c3.c3_bg) + fg($c3.c3_fg) + "\($i.git) \($branch)"
-        + rst + fg($c3.c3_bg) + $i.rc + rst
-     else ""
-     end)
-
-  # Segment 4: Profile (CLAUDE_CONFIG_DIR, optional)
-  + (if $profile != ""
-     then " " + fg($cp.bg) + $i.lc
-        + bg($cp.bg) + fg($cp.fg) + "\($i.user) \($profile)"
-        + rst + fg($cp.bg) + $i.rc + rst
-     else ""
-     end)
-
-  # Segment 5: Context %
-  + " " + fg($c4.bg) + $i.lc
-  + bg($c4.bg) + fg($c4.fg) + "\($i.ctx) \($pct)%"
-  + rst + fg($c4.bg) + $i.rc + rst
-
-  # Segment 6: Rate limits (optional, per-part colors in one pill)
-  + (if $rl != null
-     then ([$rl.p5, $rl.p7] | map(select(. != null) | . + {c: (.pct | rate_limit_color)})) as $parts
-        | $parts[0] as $a
-        | ($parts[1] // null) as $b
-        | " " + fg($a.c.bg) + $i.lc
-        + bg($a.c.bg) + fg($a.c.fg) + "\($i.rl) \($a.label)"
-        + (if $b == null
-           then ""
-           elif $b.c.bg == $a.c.bg
-           then " \($i.thin) \($b.label)"
-           else fg($a.c.bg) + bg($b.c.bg) + $i.rc
-              + fg($b.c.fg) + " \($b.label)"
-           end)
-        + ((if $b != null then $b.c.bg else $a.c.bg end) as $last_bg
-           | rst + fg($last_bg) + $i.rc + rst)
-     else ""
-     end);
+  # Segments: single-part pills plus the meters pill
+  | [ [{label: $model, c: {bg: 67, fg: 255}}],
+      [{label: $dir_label, c: {bg: 238, fg: 252}}],
+      (if $branch != "" then [{label: "\($i.git) \($branch)", c: {bg: 73, fg: 234}}] else empty end),
+      (if $profile != "" then [{label: "\($i.user) \($profile)", c: {bg: 97, fg: 255}}] else empty end),
+      $meters ]
+  | map(pill)
+  | join(" ");
 
 # --- Entry point ---
 build
