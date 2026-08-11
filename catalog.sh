@@ -10,7 +10,7 @@ show() {
 }
 
 # --- Context color zones ---
-show 'context: green (<20%)' '{
+show 'context: green (<30%)' '{
     model: {
         "display_name": "Opus 4.6 (1M context)"
     },
@@ -25,7 +25,7 @@ show 'context: green (<20%)' '{
     }
 }'
 
-show 'context: yellow (20-49%)' '{
+show 'context: yellow (30-49%)' '{
     model: {
         "display_name": "Opus 4.6 (1M context)"
     },
@@ -35,7 +35,7 @@ show 'context: yellow (20-49%)' '{
     context_window: {
         context_window_size: 1000000,
         current_usage: {
-            input_tokens: 250000
+            input_tokens: 350000
         }
     }
 }'
