@@ -63,7 +63,7 @@ def context_pct:
 # Input: percentage; Output: {bg, fg}
 def context_color:
   if . >= 50 then {bg: 167, fg: 255}
-  elif . >= 20 then {bg: 179, fg: 234}
+  elif . >= 30 then {bg: 179, fg: 234}
   else              {bg: 108, fg: 234}
   end;
 
