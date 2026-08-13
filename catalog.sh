@@ -9,6 +9,40 @@ show() {
   echo
 }
 
+# --- Model / effort ---
+show 'model: with effort' '{
+    model: {
+        "display_name": "Opus 5 (1M context)"
+    },
+    effort: {
+        level: "max"
+    },
+    workspace: {
+        current_dir: "\(env.HOME)/src/github.com/m5d215/claude-statusline"
+    },
+    context_window: {
+        context_window_size: 1000000,
+        current_usage: {
+            input_tokens: 50000
+        }
+    }
+}'
+
+show 'model: without effort (unsupported model)' '{
+    model: {
+        "display_name": "Sonnet 4.5 (200K context)"
+    },
+    workspace: {
+        current_dir: "\(env.HOME)/src/github.com/m5d215/claude-statusline"
+    },
+    context_window: {
+        context_window_size: 200000,
+        current_usage: {
+            input_tokens: 10000
+        }
+    }
+}'
+
 # --- Context color zones ---
 show 'context: green (<30%)' '{
     model: {

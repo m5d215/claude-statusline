@@ -2,7 +2,7 @@
 # Powerline status line for Claude Code (single jq-jit program)
 # Segments: Model | Directory | Git Branch | Profile | Meters (Context % + Rate Limits)
 # CLAUDE_STATUSLINE_HIDE hides segments by name (comma-separated):
-#   model | dir | git | profile | meters | context | 5h | 7d
+#   model | effort | dir | git | profile | meters | context | 5h | 7d
 
 # --- Icons (Nerd Font) ---
 def icons:
@@ -128,6 +128,19 @@ def hidden:
 # Input: name string; Output: whether $hide lists it
 def is_hidden($hide): . as $n | ($hide | index($n)) != null;
 
+# --- Model parts: model name and reasoning effort, rendered as one pill ---
+# Input: root JSON; Output: array of {name, label, c: {bg, fg}}
+# (effort is absent for models that do not support it)
+def model_parts:
+  {bg: 67, fg: 255} as $c
+  | (.model.display_name // "?"
+     | if test("\\([^)]+ context\\)")
+       then capture("(?<base>.*) \\((?<n>[^)]+) context\\)") | "\(.base) \(.n)"
+       else . end) as $model
+  | (.effort.level // "") as $effort
+  | [ {name: "model", label: $model, c: $c},
+      (if $effort != "" then {name: "effort", label: $effort, c: $c} else empty end) ];
+
 # --- Meter parts: context % and rate limits, rendered as one pill ---
 # Input: root JSON; Output: array of {name, label, c: {bg, fg}}
 def meter_parts:
@@ -164,18 +177,15 @@ def build:
   | hidden as $hide
 
   # Parse fields
-  | (.model.display_name // "?"
-     | if test("\\([^)]+ context\\)")
-       then capture("(?<base>.*) \\((?<n>[^)]+) context\\)") | "\(.base) \(.n)"
-       else . end) as $model
   | (.workspace.current_dir // ".") as $cwd
   | (if ("git" | is_hidden($hide)) then "" else ($cwd | git_branch) end) as $branch
   | profile_label as $profile
   | ($cwd | shorten_dir) as $dir_label
+  | (model_parts | map(select(.name | is_hidden($hide) | not))) as $model
   | (meter_parts | map(select(.name | is_hidden($hide) | not))) as $meters
 
-  # Segments: single-part pills plus the meters pill
-  | [ {name: "model", parts: [{label: $model, c: {bg: 67, fg: 255}}]},
+  # Segments: single-part pills plus the model / meters pills
+  | [ {name: "model", parts: $model},
       {name: "dir", parts: [{label: $dir_label, c: {bg: 238, fg: 252}}]},
       (if $branch != ""
        then {name: "git", parts: [{label: "\($i.git) \($branch)", c: {bg: 73, fg: 234}}]}

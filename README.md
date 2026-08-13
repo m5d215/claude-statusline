@@ -8,7 +8,7 @@ A Powerline-style status line and subagent panel renderer for [Claude Code](http
 
 | Segment | Name | Description |
 |---------|------|-------------|
-| Model | `model` | Claude model name and context window size |
+| Model | `model` (`effort`) | Claude model name and context window size, plus the reasoning effort level (`low` … `max`) when the model supports it |
 | Directory | `dir` | Current working directory (`~/src/github.com/` and `~/src/gitlab.com/` are shortened with icons) |
 | Git branch | `git` | Current branch (hidden when not in a git repo) |
 | Profile | `profile` | Basename of `$CLAUDE_CONFIG_DIR` (hidden when unset or `~/.claude`) |
